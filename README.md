@@ -30,10 +30,10 @@ await app.start().then(
     const end = performance.now();
     const timeToStart = end - start;
     console.log(
-      `🐎 Aponia started: ${instance.server?.hostname}:${instance.server?.port} (${timeToStart}ms`)
-    )
+      `🐎 Aponia started: ${instance.server?.hostname}:${instance.server?.port} (${timeToStart}ms)`
+    );
   },
-  (reason) => console.error(`Couldn't boostrap Aponia!\nreason: ${reason}`);
+  (reason) => console.error(`Couldn't boostrap Aponia!\nreason: ${reason}`)
 );
 ```
 

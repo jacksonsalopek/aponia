@@ -10,8 +10,11 @@ import Elysia, {
 } from "elysia";
 import { MergeSchema } from "elysia/dist/types";
 
+// biome-ignore lint/suspicious/noExplicitAny: functions can accept any args and return any type
 export type Fn = (...args: any[]) => any;
 export type AponiaAfterRequestHandler = AfterRequestHandler<
+	// biome-ignore lint/suspicious/noExplicitAny: must use any type for Elysia
+	// biome-ignore lint/complexity/noBannedTypes: must use {} type for Elysia
 	TypedSchemaToRoute<MergeSchema<TypedSchema<string>, TypedSchema<any>>, {}>,
 	ElysiaInstance
 >;
@@ -20,6 +23,7 @@ export type AponiaCtx = Context;
 export type AponiaRouteHandlerFn<Res = unknown> = (ctx: AponiaCtx) => Res;
 export type AponiaKey = string | number | symbol;
 export type AponiaState = [AponiaKey, string];
+// biome-ignore lint/suspicious/noExplicitAny: Elysia accepts any here
 export type AponiaDecorator = [string, any];
 export type AponiaRouteHandler = {
 	[key in HTTPMethod]?:
@@ -47,11 +51,10 @@ export class Aponia {
 		this.options = options;
 		this.app = new Elysia();
 		this.fsr = new Bun.FileSystemRouter({
-			dir: "./src/routes",
+			dir: `${process.cwd()}/src/routes`,
 			style: "nextjs",
 			origin:
 				this.options.origin ?? Bun.env.APONIA_ORIGIN ?? "http://localhost",
-			fileExtensions: ["ts"],
 		});
 	}
 
@@ -79,6 +82,7 @@ export class Aponia {
 			Object.keys(module.handler).forEach((method) => {
 				const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
 				const [fn, hooks, state, decorators] =
+					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
 					module!.handler[method as HTTPMethod]!;
 				const elysiaRoute = this.transformRoute(route);
 				console.info(`Registering route: ${method} ${elysiaRoute}...`);

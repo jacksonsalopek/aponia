@@ -1,14 +1,20 @@
 {
   "name": "aponia",
-  "version": "1.0.50",
+  "version": "2023.3.1",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "test": "bun test ./src/**/*.test.ts",
+    "dev": "bun run --watch src/index.ts",
+    "lint": "bunx biome check ./src",
+    "lint:fix": "bunx biome check ./src --apply",
+    "fmt": "bunx biome format ./src",
+    "fmt:fix": "bunx biome format ./src --write"
   },
   "dependencies": {
+    "@elysiajs/swagger": "^0.6.2",
     "elysia": "latest"
   },
   "devDependencies": {
+    "@biomejs/biome": "latest",
     "bun-types": "latest"
   },
   "module": "src/index.js"

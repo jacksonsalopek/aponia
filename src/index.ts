@@ -42,6 +42,39 @@ export type AponiaOptions = {
 	origin?: string;
 };
 
+export const APONIA_LOG_COLORS = {
+	reset: "\x1b[0m",
+	bright: "\x1b[1m",
+	dim: "\x1b[2m",
+	underscore: "\x1b[4m",
+	blink: "\x1b[5m",
+	reverse: "\x1b[7m",
+	hidden: "\x1b[8m",
+
+	fg: {
+		black: "\x1b[30m",
+		red: "\x1b[31m",
+		green: "\x1b[32m",
+		yellow: "\x1b[33m",
+		blue: "\x1b[34m",
+		magenta: "\x1b[35m",
+		cyan: "\x1b[36m",
+		white: "\x1b[37m",
+		crimson: "\x1b[38m", // more colors can be added by adding more codes
+	},
+	bg: {
+		black: "\x1b[40m",
+		red: "\x1b[41m",
+		green: "\x1b[42m",
+		yellow: "\x1b[43m",
+		blue: "\x1b[44m",
+		magenta: "\x1b[45m",
+		cyan: "\x1b[46m",
+		white: "\x1b[47m",
+		crimson: "\x1b[48m",
+	},
+};
+
 export class Aponia {
 	app: Elysia;
 	fsr: Bun.FileSystemRouter;
@@ -60,12 +93,12 @@ export class Aponia {
 
 	async start() {
 		const promises = Object.keys(this.fsr.routes).map(async (route) => {
-			console.info(`Loading route: ${route}...`);
+			this.log(`Loading route: ${route}...`);
 			const matchedRouteHandler = this.fsr.match(route);
 			if (!matchedRouteHandler) {
 				throw new Error(`Couldn't match route: ${route}!`);
 			}
-			console.info(`Matched route: ${route}`);
+			this.log(`Matched route: ${route}`);
 			let module: { handler: AponiaRouteHandler } | undefined = undefined;
 			await import(matchedRouteHandler.filePath).then((m) => {
 				module = m;
@@ -73,7 +106,7 @@ export class Aponia {
 			if (!module) {
 				throw new Error(`Module for route: ${route} not loaded!`);
 			}
-			console.info(`Loaded module: ${module}`);
+			this.log("Loaded module:", module);
 			module = module as { handler: AponiaRouteHandler };
 			if (!module.handler) {
 				throw new Error(`Couldn't find route handler for route: ${route}!`);
@@ -85,17 +118,17 @@ export class Aponia {
 					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
 					module!.handler[method as HTTPMethod]!;
 				const elysiaRoute = this.transformRoute(route);
-				console.info(`Registering route: ${method} ${elysiaRoute}...`);
+				this.log(`Registering route: ${method} ${elysiaRoute}...`);
 
 				try {
 					if (state) {
-						console.log(
+						this.log(
 							`Registering state for ${method} ${elysiaRoute}, state: ${state}`,
 						);
 						state.forEach(([key, value]) => this.app.state(key, value));
 					}
 					if (decorators) {
-						console.log(
+						this.log(
 							`Registering decorators for ${method} ${elysiaRoute}, decorators: ${decorators}`,
 						);
 						decorators.forEach(([key, value]) => this.app.decorate(key, value));
@@ -127,5 +160,15 @@ export class Aponia {
 		else if (this.options.basePath)
 			return `${this.options.basePath}${transformedRoute}`;
 		return transformedRoute;
+	}
+
+	// biome-ignore lint/suspicious/noExplicitAny: this.log accepts any args
+	log(...data: any[]) {
+		this.log(
+			`${APONIA_LOG_COLORS.fg.cyan}[${Date.now()}]${APONIA_LOG_COLORS.reset} ${
+				APONIA_LOG_COLORS.fg.magenta
+			}[APONIA]${APONIA_LOG_COLORS.reset}`,
+			...data,
+		);
 	}
 }

@@ -164,7 +164,7 @@ export class Aponia {
 
 	// biome-ignore lint/suspicious/noExplicitAny: this.log accepts any args
 	log(...data: any[]) {
-		this.log(
+		console.log(
 			`${APONIA_LOG_COLORS.fg.cyan}[${Date.now()}]${APONIA_LOG_COLORS.reset} ${
 				APONIA_LOG_COLORS.fg.magenta
 			}[APONIA]${APONIA_LOG_COLORS.reset}`,

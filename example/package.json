@@ -16,6 +16,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "aponia": "github:jacksonsalopek/aponia"
+    "@elysiajs/swagger": "^0.7.2",
+    "aponia": "link:aponia"
   }
 }

@@ -36,10 +36,16 @@ export type AponiaRouteHandler = {
 				AponiaDecorator[] | undefined,
 		  ];
 };
+export type ElysiaAsyncPlugin = Parameters<Elysia["use"]>[0];
+export type AponiaPlugin =
+	| ElysiaAsyncPlugin
+	| Awaited<ElysiaAsyncPlugin>["default"];
+
 export type AponiaOptions = {
 	basePath?: string;
 	port?: number;
 	origin?: string;
+	plugins?: AponiaPlugin[];
 };
 
 export const APONIA_LOG_COLORS = {
@@ -89,6 +95,11 @@ export class Aponia {
 			origin:
 				this.options.origin ?? Bun.env.APONIA_ORIGIN ?? "http://localhost",
 		});
+		if (this.options.plugins) {
+			this.options.plugins.forEach((plugin) =>
+				this.app.use(plugin as ElysiaAsyncPlugin),
+			);
+		}
 	}
 
 	async start() {
@@ -152,6 +163,10 @@ export class Aponia {
 		}
 		this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
 		return this.app;
+	}
+
+	async stop() {
+		await this.app.stop();
 	}
 
 	transformRoute(route: string) {

@@ -10,7 +10,6 @@
     "fmt:fix": "bunx biome format ./src --write"
   },
   "dependencies": {
-    "@elysiajs/swagger": "^0.6.2",
     "elysia": "latest"
   },
   "devDependencies": {

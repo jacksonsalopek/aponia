@@ -1,8 +1,10 @@
 import { Aponia } from "aponia";
+import { dirname } from "path";
 import { performance } from "perf_hooks";
 
 const start = performance.now();
-const app = new Aponia({ basePath: "api" });
+const moduleDir = dirname(Bun.fileURLToPath(new URL(import.meta.url)));
+const app = new Aponia({ basePath: "api", routesDir: `${moduleDir}/routes` });
 
 await app.start().then(
 	(instance) => {

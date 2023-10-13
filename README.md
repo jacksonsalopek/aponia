@@ -41,7 +41,7 @@ After creating the instance, we can start adding some routes. Create a route by 
 `src/routes/user/index.ts`, which will bootstrap as `/user`. This file should export a handler, which is used by Aponia to boostrap your routes. For example:
 
 ```ts
-import {
+import type {
   AponiaAfterRequestHandler,
   AponiaCtx,
   AponiaDecorator,
@@ -100,3 +100,39 @@ export const handler: AponiaRouteHandler = {
 ```
 
 The above example shows all of the ways you can configure a given endpoint, including the usage of hooks, state, and decorators. For more information on these concepts, refer to the Elysia documentation.
+
+### A Note on Monorepos
+
+If you have a monorepo and Aponia is nested within a subdirectory, you can use the following pattern to ensure that the routes directory is always loaded properly:
+
+```ts
+import { Aponia } from "aponia";
+import { dirname } from "path";
+// other imports
+
+// other setup
+
+// set moduleDir to the directory of the current file,
+// this will ensure that the routes directory is always
+// loaded properly!
+const moduleDir = dirname(Bun.fileURLToPath(new URL(import.meta.url)));
+const app = new Aponia({ basePath: "api", routesDir: `${moduleDir}/routes` });
+// start app below
+```
+
+### Building for Production
+
+Aponia provides a build function for you to programmatically build your routes. To use it, setup a build script (i.e. `build.ts`) containing the following:
+
+```ts
+import { Aponia } from "aponia";
+
+await Aponia.build({
+  // routesDir is mandatory, can be relative or absolute
+	routesDir: `${process.cwd()}/src/routes`,
+  // outDir is optional, defaults to process.cwd() + "/dist"
+  outDir: `${process.cwd()}/dist`,
+});
+```
+
+This will build your application and bundle your routes in `outDir`. You can then run your application by running `bun run dist/index.js`.

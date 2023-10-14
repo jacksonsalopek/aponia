@@ -55,6 +55,7 @@ export type AponiaOptions = {
 export type AponiaBuildOptions = {
 	routesDir: string;
 	outDir?: string;
+	sourcemaps?: boolean;
 };
 
 export const APONIA_LOG_COLORS = {
@@ -219,6 +220,7 @@ export class Aponia {
 	static async build(
 		options: AponiaBuildOptions = {
 			routesDir: `${process.cwd()}/src/routes`,
+			sourcemaps: false,
 		},
 	) {
 		Aponia.log("Building Aponia...");
@@ -226,20 +228,29 @@ export class Aponia {
 		const outdir = options.outDir ?? "./dist";
 		await rm(outdir, { recursive: true, force: true });
 
+		const sourcemap = options.sourcemaps ? "external" : "none";
+
 		await Bun.build({
 			entrypoints: ["./src/index.ts"],
 			outdir,
 			target: "bun",
+			sourcemap,
 		});
 
-		await Aponia.copyAndTranspileDir(options.routesDir, `${outdir}/routes`);
+		Aponia.log(`Transpiling routes (sourcemaps=${sourcemap})...`);
+		await Aponia.copyAndTranspileDir(
+			options.routesDir,
+			`${outdir}/routes`,
+			sourcemap,
+		);
 		Aponia.log("Aponia build complete!");
 	}
 
-	static async copyAndTranspileDir(src: string, dest: string) {
-		const transpiler = new Bun.Transpiler({
-			loader: "ts",
-		});
+	static async copyAndTranspileDir(
+		src: string,
+		dest: string,
+		sourcemap: "none" | "external" | "inline",
+	) {
 		// Ensure the destination directory exists
 		await mkdir(dest, { recursive: true });
 
@@ -253,15 +264,21 @@ export class Aponia {
 
 			if (entry.isDirectory()) {
 				// If the entry is a directory, recursively copy it
-				await Aponia.copyAndTranspileDir(srcPath, destPath);
+				await Aponia.copyAndTranspileDir(srcPath, destPath, sourcemap);
 			} else if (entry.isFile()) {
 				// If the entry is a file, copy it
 				if (entry.name.endsWith(".ts")) {
 					// transpile the file
-					Aponia.log(`Transpiling file: ${srcPath}`);
-					const fileContents = await Bun.file(srcPath).text();
-					const transpiledContent = await transpiler.transform(fileContents);
-					await Bun.write(destPath.replace(".ts", ".js"), transpiledContent);
+					Aponia.log(`Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`);
+					await Bun.build({
+						entrypoints: [srcPath],
+						outdir: dest,
+						target: "bun",
+						sourcemap,
+					});
+					// const fileContents = await Bun.file(srcPath).text();
+					// const transpiledContent = await transpiler.transform(fileContents);
+					// await Bun.write(destPath.replace(".ts", ".js"), transpiledContent);
 				} else {
 					await copyFile(srcPath, destPath);
 				}

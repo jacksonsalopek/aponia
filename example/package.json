@@ -8,7 +8,8 @@
 		"lint:fix": "bunx biome check ./src --apply",
 		"fmt": "bunx biome format ./src",
 		"fmt:fix": "bunx biome format ./src --write",
-		"start": "NODE_ENV=production bun run dist/index.js"
+		"start": "NODE_ENV=production bun run dist/index.js",
+		"prestart": "bun run build.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "latest",

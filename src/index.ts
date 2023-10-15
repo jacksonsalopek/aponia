@@ -267,7 +267,7 @@ export class Aponia {
 				await Aponia.copyAndTranspileDir(srcPath, destPath, sourcemap);
 			} else if (entry.isFile()) {
 				// If the entry is a file, copy it
-				if (entry.name.endsWith(".ts")) {
+				if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
 					// transpile the file
 					Aponia.log(`Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`);
 					await Bun.build({

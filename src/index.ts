@@ -1,12 +1,12 @@
 import Bun from "bun";
 import Elysia, {
-	AfterRequestHandler,
-	Context,
-	ElysiaInstance,
-	HTTPMethod,
-	LocalHook,
-	TypedSchema,
-	TypedSchemaToRoute,
+	type AfterRequestHandler,
+	type Context,
+	type ElysiaInstance,
+	type HTTPMethod,
+	type LocalHook,
+	type TypedSchema,
+	type TypedSchemaToRoute,
 } from "elysia";
 import { MergeSchema } from "elysia/dist/types";
 import { FSWatcher, watch } from "fs";
@@ -276,9 +276,6 @@ export class Aponia {
 						target: "bun",
 						sourcemap,
 					});
-					// const fileContents = await Bun.file(srcPath).text();
-					// const transpiledContent = await transpiler.transform(fileContents);
-					// await Bun.write(destPath.replace(".ts", ".js"), transpiledContent);
 				} else {
 					await copyFile(srcPath, destPath);
 				}

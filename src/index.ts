@@ -28,6 +28,7 @@ export type AponiaKey = string | number | symbol;
 export type AponiaState = [AponiaKey, string];
 // biome-ignore lint/suspicious/noExplicitAny: Elysia accepts any here
 export type AponiaDecorator = [string, any];
+export type AponiaDerivedState = Parameters<typeof Elysia.prototype.derive>[0];
 export type AponiaRouteHandler = {
 	[key in HTTPMethod]?:
 		| [AponiaRouteHandlerFn]
@@ -37,6 +38,7 @@ export type AponiaRouteHandler = {
 				AponiaHooks | undefined,
 				AponiaState[] | undefined,
 				AponiaDecorator[] | undefined,
+				AponiaDerivedState[] | undefined,
 		  ];
 };
 export type ElysiaAsyncPlugin = Parameters<Elysia["use"]>[0];
@@ -155,7 +157,7 @@ export class Aponia {
 
 			Object.keys(module.handler).forEach((method) => {
 				const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
-				const [fn, hooks, state, decorators] =
+				const [fn, hooks, state, decorators, derive] =
 					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
 					module!.handler[method as HTTPMethod]!;
 				const elysiaRoute = this.transformRoute(route);
@@ -173,6 +175,14 @@ export class Aponia {
 							`Registering decorators for ${method} ${elysiaRoute}, decorators: ${decorators}`,
 						);
 						decorators.forEach(([key, value]) => this.app.decorate(key, value));
+					}
+					if (derive) {
+						Aponia.log(
+							`Registering derived state for ${method} ${elysiaRoute}, derived state fns: ${derive.map(
+								(fn) => fn.name,
+							)}`,
+						);
+						derive.forEach((derivedState) => this.app.derive(derivedState));
 					}
 					(this.app[key] as Fn)(elysiaRoute, fn, hooks);
 				} catch (err) {

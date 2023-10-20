@@ -36,7 +36,6 @@ export type AponiaRouteHandlerConfig = {
   state?: AponiaState[];
   hooks?: AponiaHooks;
   decorators?: AponiaDecorator[];
-  derivedState?: AponiaDerivedState[];
 };
 export type AponiaRouteHandler = {
   [key in HTTPMethod]?: AponiaRouteHandlerConfig;
@@ -52,6 +51,7 @@ export type AponiaOptions = {
   port?: number;
   origin?: string;
   plugins?: AponiaPlugin[];
+  derivedState?: AponiaDerivedState[];
 };
 
 export type AponiaBuildOptions = {
@@ -115,6 +115,11 @@ export class Aponia {
         this.app.use(plugin as ElysiaAsyncPlugin);
       }
     }
+    if (this.options.derivedState) {
+      for (const dsFn of this.options.derivedState) {
+        this.app.derive(dsFn);
+      }
+    }
     if (Bun.env.NODE_ENV !== "production") {
       // watch filesytem for changes in development
       Aponia.log("Watching filesystem for changes...");
@@ -157,7 +162,7 @@ export class Aponia {
 
       for (const method of Object.keys(module.handler)) {
         const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
-        const { fn, hooks, state, decorators, derivedState } =
+        const { fn, hooks, state, decorators } =
           // biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
           module!.handler[method as HTTPMethod]!;
         const elysiaRoute = this.transformRoute(route);
@@ -178,16 +183,6 @@ export class Aponia {
             );
             for (const [key, value] of decorators) {
               this.app.decorate(key, value);
-            }
-          }
-          if (derivedState) {
-            Aponia.log(
-              `Registering derived state for ${method} ${elysiaRoute}, derived state fns: ${derivedState.map(
-                (fn) => fn.name,
-              )}`,
-            );
-            for (const dsFn of derivedState) {
-              this.app.derive(dsFn);
             }
           }
           if (hooks) {

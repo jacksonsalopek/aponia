@@ -31,24 +31,15 @@ export type AponiaDecorator = [string, any];
 export type AponiaDerivedState = (
 	ctx: AponiaCtx,
 ) => ReturnType<Parameters<typeof Elysia.prototype.derive>[0]>;
+export type AponiaRouteHandlerConfig = {
+	handler: AponiaRouteHandlerFn;
+	state?: AponiaState[];
+	hooks?: AponiaHooks;
+	decorators?: AponiaDecorator[];
+	derivedState?: AponiaDerivedState[];
+};
 export type AponiaRouteHandler = {
-	[key in HTTPMethod]?:
-		| [AponiaRouteHandlerFn]
-		| [AponiaRouteHandlerFn, AponiaHooks]
-		| [AponiaRouteHandlerFn, AponiaHooks | undefined, AponiaState[] | undefined]
-		| [
-				AponiaRouteHandlerFn,
-				AponiaHooks | undefined,
-				AponiaState[] | undefined,
-				AponiaDecorator[] | undefined,
-		  ]
-		| [
-				AponiaRouteHandlerFn,
-				AponiaHooks | undefined,
-				AponiaState[] | undefined,
-				AponiaDecorator[] | undefined,
-				AponiaDerivedState[] | undefined,
-		  ];
+	[key in HTTPMethod]?: AponiaRouteHandlerConfig;
 };
 export type ElysiaAsyncPlugin = Parameters<Elysia["use"]>[0];
 export type AponiaPlugin =
@@ -166,7 +157,7 @@ export class Aponia {
 
 			Object.keys(module.handler).forEach((method) => {
 				const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
-				const [fn, hooks, state, decorators, derive] =
+				const { handler, hooks, state, decorators, derivedState } =
 					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
 					module!.handler[method as HTTPMethod]!;
 				const elysiaRoute = this.transformRoute(route);
@@ -185,15 +176,15 @@ export class Aponia {
 						);
 						decorators.forEach(([key, value]) => this.app.decorate(key, value));
 					}
-					if (derive) {
+					if (derivedState) {
 						Aponia.log(
-							`Registering derived state for ${method} ${elysiaRoute}, derived state fns: ${derive.map(
+							`Registering derived state for ${method} ${elysiaRoute}, derived state fns: ${derivedState.map(
 								(fn) => fn.name,
 							)}`,
 						);
-						derive.forEach((derivedState) => this.app.derive(derivedState));
+						derivedState.forEach((ds) => this.app.derive(ds));
 					}
-					(this.app[key] as Fn)(elysiaRoute, fn, hooks);
+					(this.app[key] as Fn)(elysiaRoute, handler, hooks);
 				} catch (err) {
 					console.error(`Error registering route: ${method} ${elysiaRoute}!`);
 					throw err;

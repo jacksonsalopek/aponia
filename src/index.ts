@@ -28,7 +28,9 @@ export type AponiaKey = string | number | symbol;
 export type AponiaState = [AponiaKey, string];
 // biome-ignore lint/suspicious/noExplicitAny: Elysia accepts any here
 export type AponiaDecorator = [string, any];
-export type AponiaDerivedState = Parameters<typeof Elysia.prototype.derive>[0];
+export type AponiaDerivedState = (
+	ctx: AponiaCtx,
+) => ReturnType<Parameters<typeof Elysia.prototype.derive>[0]>;
 export type AponiaRouteHandler = {
 	[key in HTTPMethod]?:
 		| [AponiaRouteHandlerFn]

@@ -211,6 +211,7 @@ export class Aponia {
       }
       throw new Error("Errors encountered while registering routes!");
     }
+    Aponia.log("Registered all routes:", this.app.routes);
     this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
     return this.app;
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { Aponia } from "."
+import { Aponia } from ".";
 
 describe("Aponia", () => {
   it("should instantiate", () => {
@@ -9,5 +9,5 @@ describe("Aponia", () => {
     expect(aponia.fsr).toBeDefined();
     expect(aponia.options).toBeDefined();
     expect(aponia.options.basePath).toBeUndefined();
-  })
+  });
 });

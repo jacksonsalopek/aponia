@@ -184,6 +184,26 @@ export class Aponia {
 						);
 						derivedState.forEach((ds) => this.app.derive(ds));
 					}
+					if (hooks) {
+						Aponia.log(
+							`Registering hooks for ${method} ${elysiaRoute}, hooks: ${hooks}`,
+						);
+						if (hooks.beforeHandle && Array.isArray(hooks.beforeHandle)) {
+							hooks.beforeHandle?.forEach((hook) =>
+								this.app.onAfterHandle(hook),
+							);
+							// Remove hooks from the handler object so they don't get registered twice
+							hooks.beforeHandle = undefined;
+						}
+						if (hooks.afterHandle && Array.isArray(hooks.afterHandle)) {
+							hooks.afterHandle?.forEach((hook) =>
+								this.app.onAfterHandle(hook),
+							);
+							// Remove hooks from the handler object so they don't get registered twice
+							hooks.afterHandle = undefined;
+						}
+						// @TODO: handle other hooks
+					}
 					(this.app[key] as Fn)(elysiaRoute, fn, hooks);
 				} catch (err) {
 					console.error(`Error registering route: ${method} ${elysiaRoute}!`);

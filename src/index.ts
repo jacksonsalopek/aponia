@@ -33,6 +33,13 @@ export type AponiaRouteHandler = {
 	[key in HTTPMethod]?:
 		| [AponiaRouteHandlerFn]
 		| [AponiaRouteHandlerFn, AponiaHooks]
+		| [AponiaRouteHandlerFn, AponiaHooks | undefined, AponiaState[] | undefined]
+		| [
+				AponiaRouteHandlerFn,
+				AponiaHooks | undefined,
+				AponiaState[] | undefined,
+				AponiaDecorator[] | undefined,
+		  ]
 		| [
 				AponiaRouteHandlerFn,
 				AponiaHooks | undefined,

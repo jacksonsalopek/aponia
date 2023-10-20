@@ -32,7 +32,7 @@ export type AponiaDerivedState = (
 	ctx: AponiaCtx,
 ) => ReturnType<Parameters<typeof Elysia.prototype.derive>[0]>;
 export type AponiaRouteHandlerConfig = {
-	handler: AponiaRouteHandlerFn;
+	fn: AponiaRouteHandlerFn;
 	state?: AponiaState[];
 	hooks?: AponiaHooks;
 	decorators?: AponiaDecorator[];
@@ -157,7 +157,7 @@ export class Aponia {
 
 			Object.keys(module.handler).forEach((method) => {
 				const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
-				const { handler, hooks, state, decorators, derivedState } =
+				const { fn, hooks, state, decorators, derivedState } =
 					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
 					module!.handler[method as HTTPMethod]!;
 				const elysiaRoute = this.transformRoute(route);
@@ -184,7 +184,7 @@ export class Aponia {
 						);
 						derivedState.forEach((ds) => this.app.derive(ds));
 					}
-					(this.app[key] as Fn)(elysiaRoute, handler, hooks);
+					(this.app[key] as Fn)(elysiaRoute, fn, hooks);
 				} catch (err) {
 					console.error(`Error registering route: ${method} ${elysiaRoute}!`);
 					throw err;

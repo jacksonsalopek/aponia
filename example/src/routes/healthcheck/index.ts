@@ -7,6 +7,7 @@ import {
   type AponiaRouteHandler,
   type AponiaRouteHandlerFn,
 } from "aponia";
+import logger from "../../logger";
 
 export const getDateDecorator: AponiaDecorator = ["getDate", () => Date.now()];
 
@@ -24,21 +25,12 @@ export const getHealthcheck: AponiaRouteHandlerFn<{
 };
 
 export const postGetHealthcheck: AponiaAfterRequestHandler = ({ set }) => {
-  Aponia.log("called 1");
+  logger.info("called 1");
   set.headers["Content-Type"] = "application/json";
 };
 
-export const testAsyncHook: AponiaAfterRequestHandler = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  Aponia.log("called 3");
-};
-
 export const getHealthcheckHooks: AponiaHooks = {
-  afterHandle: [
-    postGetHealthcheck,
-    () => Aponia.log("called 2"),
-    testAsyncHook,
-  ],
+  afterHandle: [postGetHealthcheck, () => logger.info("called 2")],
 };
 
 export const handler: AponiaRouteHandler = {

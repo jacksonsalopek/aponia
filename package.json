@@ -10,7 +10,9 @@
     "fmt:fix": "bunx biome format ./src --write"
   },
   "dependencies": {
-    "elysia": "latest"
+    "elysia": "latest",
+    "pino": "^8.16.0",
+    "pino-pretty": "^10.2.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.3.1",

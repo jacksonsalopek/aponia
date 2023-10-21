@@ -12,6 +12,7 @@ import Elysia, {
 } from "elysia";
 import { MergeSchema } from "elysia/dist/types";
 import { copyFile, mkdir, readdir, rm } from "fs/promises";
+import pino from "pino";
 
 // biome-ignore lint/suspicious/noExplicitAny: functions can accept any args and return any type
 export type Fn = (...args: any[]) => any;
@@ -52,6 +53,7 @@ export type AponiaOptions = {
   origin?: string;
   plugins?: AponiaPlugin[];
   derivedState?: AponiaDerivedState[];
+  logLevel?: pino.LevelWithSilentOrString;
 };
 
 export type AponiaBuildOptions = {
@@ -99,8 +101,18 @@ export class Aponia {
   options: AponiaOptions;
   routesDir: string;
   watcher?: FSWatcher;
+  logger: ReturnType<typeof pino>;
 
   constructor(options: AponiaOptions = {}) {
+    this.logger = pino({
+      transport: {
+        target: "pino-pretty",
+        options: {
+          colorize: true,
+        },
+      },
+      level: options.logLevel ?? "info",
+    });
     this.options = options;
     this.app = new Elysia();
     this.routesDir = this.options.routesDir ?? `${process.cwd()}/src/routes`;
@@ -122,16 +134,16 @@ export class Aponia {
     }
     if (Bun.env.NODE_ENV !== "production") {
       // watch filesytem for changes in development
-      Aponia.log("Watching filesystem for changes...");
+      this.logger.info("Watching filesystem for changes...");
       this.watcher = watch(this.routesDir, { recursive: true }, () => {
-        Aponia.log("Filesystem change detected, reloading routes...");
+        this.logger.info("Filesystem change detected, reloading routes...");
         this.stop();
         this.fsr.reload();
         this.start();
       });
       process.on("SIGINT", () => {
         // close watcher when Ctrl-C is pressed
-        Aponia.log("Shutting down filesystem watcher...");
+        this.logger.info("Shutting down filesystem watcher...");
         this.watcher?.close();
 
         process.exit(0);
@@ -141,12 +153,12 @@ export class Aponia {
 
   async start() {
     const promises = Object.keys(this.fsr.routes).map(async (route) => {
-      Aponia.log(`Loading route: ${route}...`);
+      this.logger.debug(`Loading route: ${route}...`);
       const matchedRouteHandler = this.fsr.match(route);
       if (!matchedRouteHandler) {
         throw new Error(`Couldn't match route: ${route}!`);
       }
-      Aponia.log(`Matched route: ${route}`);
+      this.logger.debug(`Matched route: ${route}`);
       let module: { handler: AponiaRouteHandler } | undefined = undefined;
       await import(matchedRouteHandler.filePath).then((m) => {
         module = m;
@@ -154,7 +166,7 @@ export class Aponia {
       if (!module) {
         throw new Error(`Module for route: ${route} not loaded!`);
       }
-      Aponia.log("Loaded module:", module);
+      this.logger.debug("Loaded module:", module);
       module = module as { handler: AponiaRouteHandler };
       if (!module.handler) {
         throw new Error(`Couldn't find route handler for route: ${route}!`);
@@ -166,11 +178,11 @@ export class Aponia {
           // biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
           module!.handler[method as HTTPMethod]!;
         const elysiaRoute = this.transformRoute(route);
-        Aponia.log(`Registering route: ${method} ${elysiaRoute}...`);
+        this.logger.debug(`Registering route: ${method} ${elysiaRoute}...`);
 
         try {
           if (state) {
-            Aponia.log(
+            this.logger.debug(
               `Registering state for ${method} ${elysiaRoute}, state: ${state}`,
             );
             for (const [key, value] of state) {
@@ -178,7 +190,7 @@ export class Aponia {
             }
           }
           if (decorators) {
-            Aponia.log(
+            this.logger.debug(
               `Registering decorators for ${method} ${elysiaRoute}, decorators: ${decorators}`,
             );
             for (const [key, value] of decorators) {
@@ -206,7 +218,7 @@ export class Aponia {
       }
       throw new Error("Errors encountered while registering routes!");
     }
-    Aponia.log("Registered all routes:", this.app.routes);
+    this.logger.debug("Registered all routes:", this.app.routes);
     this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
     return this.app;
   }
@@ -223,23 +235,13 @@ export class Aponia {
     return transformedRoute;
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: this.log accepts any args
-  static log(...data: any[]) {
-    console.log(
-      `${APONIA_LOG_COLORS.fg.cyan}[${Date.now()}]${APONIA_LOG_COLORS.reset} ${
-        APONIA_LOG_COLORS.fg.magenta
-      }[APONIA]${APONIA_LOG_COLORS.reset}`,
-      ...data,
-    );
-  }
-
   static async build(
     options: AponiaBuildOptions = {
       routesDir: `${process.cwd()}/src/routes`,
       sourcemaps: false,
     },
   ) {
-    Aponia.log("Building Aponia...");
+    console.log("Building Aponia...");
     // remove
     const outdir = options.outDir ?? "./dist";
     await rm(outdir, { recursive: true, force: true });
@@ -253,13 +255,13 @@ export class Aponia {
       sourcemap,
     });
 
-    Aponia.log(`Transpiling routes (sourcemaps=${sourcemap})...`);
+    console.log(`Transpiling routes (sourcemaps=${sourcemap})...`);
     await Aponia.copyAndTranspileDir(
       options.routesDir,
       `${outdir}/routes`,
       sourcemap,
     );
-    Aponia.log("Aponia build complete!");
+    console.log("Aponia build complete!");
   }
 
   static async copyAndTranspileDir(
@@ -285,7 +287,7 @@ export class Aponia {
         // If the entry is a file, copy it
         if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
           // transpile the file
-          Aponia.log(`Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`);
+          console.log(`Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`);
           await Bun.build({
             entrypoints: [srcPath],
             outdir: dest,

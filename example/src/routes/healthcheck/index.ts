@@ -1,35 +1,42 @@
-import type {
-	AponiaAfterRequestHandler,
-	AponiaCtx,
-	AponiaDecorator,
-	AponiaHooks,
-	AponiaRouteHandler,
-	AponiaRouteHandlerFn,
+import {
+  Aponia,
+  type AponiaAfterRequestHandler,
+  type AponiaCtx,
+  type AponiaDecorator,
+  type AponiaHooks,
+  type AponiaRouteHandler,
+  type AponiaRouteHandlerFn,
 } from "aponia";
+import logger from "../../logger";
 
 export const getDateDecorator: AponiaDecorator = ["getDate", () => Date.now()];
 
 export const getHealthcheck: AponiaRouteHandlerFn<{
-	status: string;
-	timestamp: number;
+  status: string;
+  timestamp: number;
 }> = (ctx: AponiaCtx) => {
-	const decoratedCtx = ctx as AponiaCtx & {
-		getDate: () => Date;
-	};
-	return {
-		status: "ok",
-		timestamp: +decoratedCtx.getDate(),
-	};
+  const decoratedCtx = ctx as AponiaCtx & {
+    getDate: () => Date;
+  };
+  return {
+    status: "ok",
+    timestamp: +decoratedCtx.getDate(),
+  };
 };
 
 export const postGetHealthcheck: AponiaAfterRequestHandler = ({ set }) => {
-	set.headers["Content-Type"] = "application/json";
+  logger.info("called 1");
+  set.headers["Content-Type"] = "application/json";
 };
 
 export const getHealthcheckHooks: AponiaHooks = {
-	afterHandle: [postGetHealthcheck],
+  afterHandle: [postGetHealthcheck, () => logger.info("called 2")],
 };
 
 export const handler: AponiaRouteHandler = {
-	GET: [getHealthcheck, getHealthcheckHooks, undefined, [getDateDecorator]],
+  GET: {
+    fn: getHealthcheck,
+    hooks: getHealthcheckHooks,
+    decorators: [getDateDecorator],
+  },
 };

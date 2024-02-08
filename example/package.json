@@ -1,25 +1,24 @@
 {
-	"name": "aponia-example",
-	"module": "src/index.ts",
-	"scripts": {
-		"build": "bun run build.ts",
-		"dev": "bun run --watch src/index.ts",
-		"lint": "bunx biome check ./src",
-		"lint:fix": "bunx biome check ./src --apply",
-		"fmt": "bunx biome format ./src",
-		"fmt:fix": "bunx biome format ./src --write",
-		"start": "NODE_ENV=production bun run dist/index.js",
-		"prestart": "bun run build.ts"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "latest",
-		"bun-types": "latest"
-	},
-	"peerDependencies": {
-		"typescript": "^5.0.0"
-	},
-	"dependencies": {
-		"@elysiajs/swagger": "^0.7.2",
-		"aponia": "link:aponia"
-	}
+  "name": "aponia-example",
+  "module": "src/index.ts",
+  "scripts": {
+    "build": "bun run build.ts",
+    "dev": "bun run --watch src/index.ts",
+    "lint": "bunx biome check ./src",
+    "lint:fix": "bunx biome check ./src --apply",
+    "fmt": "bunx biome format ./src",
+    "fmt:fix": "bunx biome format ./src --write",
+    "start": "NODE_ENV=production bun run dist/index.js",
+    "prestart": "bun run build.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "aponia": "link:aponia"
+  }
 }

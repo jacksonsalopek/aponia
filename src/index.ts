@@ -1,3 +1,5 @@
+import { FSWatcher, watch } from "fs";
+import { join } from "path";
 import Bun from "bun";
 import Elysia, {
 	AfterRequestHandler,
@@ -9,9 +11,7 @@ import Elysia, {
 	TypedSchemaToRoute,
 } from "elysia";
 import { MergeSchema } from "elysia/dist/types";
-import { FSWatcher, watch } from "fs";
 import { copyFile, mkdir, readdir, rm } from "fs/promises";
-import { join } from "path";
 
 // biome-ignore lint/suspicious/noExplicitAny: functions can accept any args and return any type
 export type Fn = (...args: any[]) => any;
@@ -109,9 +109,9 @@ export class Aponia {
 				this.options.origin ?? Bun.env.APONIA_ORIGIN ?? "http://localhost",
 		});
 		if (this.options.plugins) {
-			this.options.plugins.forEach((plugin) =>
-				this.app.use(plugin as ElysiaAsyncPlugin),
-			);
+			for (const plugin of this.options.plugins) {
+				this.app.use(plugin as ElysiaAsyncPlugin);
+			}
 		}
 		if (Bun.env.NODE_ENV !== "production") {
 			// watch filesytem for changes in development
@@ -153,7 +153,7 @@ export class Aponia {
 				throw new Error(`Couldn't find route handler for route: ${route}!`);
 			}
 
-			Object.keys(module.handler).forEach((method) => {
+			for (const method of Object.keys(module.handler)) {
 				const key = (method as HTTPMethod).toLowerCase() as keyof Elysia;
 				const [fn, hooks, state, decorators] =
 					// biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
@@ -166,29 +166,32 @@ export class Aponia {
 						Aponia.log(
 							`Registering state for ${method} ${elysiaRoute}, state: ${state}`,
 						);
-						state.forEach(([key, value]) => this.app.state(key, value));
+						for (const [key, value] of state) {
+							this.app.state(key, value);
+						}
 					}
 					if (decorators) {
 						Aponia.log(
 							`Registering decorators for ${method} ${elysiaRoute}, decorators: ${decorators}`,
 						);
-						decorators.forEach(([key, value]) => this.app.decorate(key, value));
+						for (const [key, value] of decorators) {
+							this.app.decorate(key, value);
+						}
 					}
 					(this.app[key] as Fn)(elysiaRoute, fn, hooks);
 				} catch (err) {
 					console.error(`Error registering route: ${method} ${elysiaRoute}!`);
 					throw err;
 				}
-			});
+			}
 		});
 
 		const results = await Promise.allSettled(promises);
 		const rejected = results.filter((result) => result.status === "rejected");
 		if (rejected.length > 0) {
 			console.error("Errors encountered while registering routes:");
-			rejected.forEach((result) =>
-				console.error((result as PromiseRejectedResult).reason),
-			);
+			for (const result of rejected)
+				console.error((result as PromiseRejectedResult).reason);
 			throw new Error("Errors encountered while registering routes!");
 		}
 		this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
@@ -201,9 +204,10 @@ export class Aponia {
 
 	transformRoute(route: string) {
 		const transformedRoute = route.replace(/\[([^\]]+)\]/g, ":$1");
-		if (this.options.basePath && route === "/") return this.options.basePath;
-		else if (this.options.basePath)
+		if (this.options.basePath && route === "/") {
+			if (route === "/") return this.options.basePath;
 			return `${this.options.basePath}${transformedRoute}`;
+		}
 		return transformedRoute;
 	}
 

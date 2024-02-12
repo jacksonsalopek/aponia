@@ -185,8 +185,7 @@ export class Aponia {
             this.logger.debug(
               `Registering state for ${method} ${elysiaRoute}, state: ${state}`,
             );
-            for (const [key, value] of state)
-              this.app.state(key, value);
+            for (const [key, value] of state) this.app.state(key, value);
           }
           if (decorators) {
             this.logger.debug(
@@ -224,14 +223,22 @@ export class Aponia {
     await this.app.stop();
   }
 
-	transformRoute(route: string) {
-		const transformedRoute = route.replace(/\[([^\]]+)\]/g, ":$1");
-		if (this.options.basePath && route === "/") {
-			if (route === "/") return this.options.basePath;
-			return `${this.options.basePath}${transformedRoute}`;
-		}
-		return transformedRoute;
-	}
+  transformRoute(route: string) {
+    const wildcardRemoved = this.removeWildcard(route);
+    const transformedRoute = wildcardRemoved.replace(/\[([^\]]+)\]/g, ":$1");
+    if (this.options.basePath && route === "/") {
+      if (route === "/") return this.options.basePath;
+      return `${this.options.basePath}${transformedRoute}`;
+    }
+    return transformedRoute;
+  }
+
+  removeWildcard(route: string) {
+    console.log("route", route);
+    const wildcardIndex = route.indexOf("[[...");
+    if (wildcardIndex === -1) return route;
+    return `${route.substring(0, wildcardIndex)}*`;
+  }
 
   static async build(
     options: AponiaBuildOptions = {

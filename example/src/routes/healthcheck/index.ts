@@ -1,11 +1,10 @@
-import {
-  Aponia,
-  type AponiaAfterRequestHandler,
-  type AponiaCtx,
-  type AponiaDecorator,
-  type AponiaHooks,
-  type AponiaRouteHandler,
-  type AponiaRouteHandlerFn,
+import type {
+  AponiaAfterRequestHandler,
+  AponiaCtx,
+  AponiaDecorator,
+  AponiaHooks,
+  AponiaRouteHandler,
+  AponiaRouteHandlerFn,
 } from "aponia";
 import logger from "../../logger";
 

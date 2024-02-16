@@ -57,7 +57,7 @@ export type AponiaOptions = {
 };
 
 export type AponiaBuildOptions = {
-  routesDir: string;
+  srcDir: string;
   outDir?: string;
   sourcemaps?: boolean;
 };
@@ -101,10 +101,18 @@ export class Aponia {
   options: AponiaOptions;
   routesDir: string;
   watcher?: FSWatcher;
-  logger: ReturnType<typeof pino>;
+  static logger: ReturnType<typeof pino> = pino({
+    transport: {
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+      },
+    },
+    level: "info",
+  });
 
   constructor(options: AponiaOptions = {}) {
-    this.logger = pino({
+    Aponia.logger = pino({
       transport: {
         target: "pino-pretty",
         options: {
@@ -134,16 +142,16 @@ export class Aponia {
     }
     if (Bun.env.NODE_ENV !== "production") {
       // watch filesytem for changes in development
-      this.logger.info("Watching filesystem for changes...");
+      Aponia.logger.info("Watching filesystem for changes...");
       this.watcher = watch(this.routesDir, { recursive: true }, () => {
-        this.logger.info("Filesystem change detected, reloading routes...");
+        Aponia.logger.info("Filesystem change detected, reloading routes...");
         this.stop();
         this.fsr.reload();
         this.start();
       });
       process.on("SIGINT", () => {
         // close watcher when Ctrl-C is pressed
-        this.logger.info("Shutting down filesystem watcher...");
+        Aponia.logger.info("Shutting down filesystem watcher...");
         this.watcher?.close();
 
         process.exit(0);
@@ -153,12 +161,12 @@ export class Aponia {
 
   async start() {
     const promises = Object.keys(this.fsr.routes).map(async (route) => {
-      this.logger.debug(`Loading route: ${route}...`);
+      Aponia.logger.debug(`Loading route: ${route}...`);
       const matchedRouteHandler = this.fsr.match(route);
       if (!matchedRouteHandler) {
         throw new Error(`Couldn't match route: ${route}!`);
       }
-      this.logger.debug(`Matched route: ${route}`);
+      Aponia.logger.debug(`Matched route: ${route}`);
       let module: { handler: AponiaRouteHandler } | undefined = undefined;
       await import(matchedRouteHandler.filePath).then((m) => {
         module = m;
@@ -166,7 +174,7 @@ export class Aponia {
       if (!module) {
         throw new Error(`Module for route: ${route} not loaded!`);
       }
-      this.logger.debug("Loaded module:", module);
+      Aponia.logger.debug("Loaded module:", module);
       module = module as { handler: AponiaRouteHandler };
       if (!module.handler) {
         throw new Error(`Couldn't find route handler for route: ${route}!`);
@@ -178,17 +186,17 @@ export class Aponia {
           // biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
           module!.handler[method as HTTPMethod]!;
         const elysiaRoute = this.transformRoute(route);
-        this.logger.debug(`Registering route: ${method} ${elysiaRoute}...`);
+        Aponia.logger.debug(`Registering route: ${method} ${elysiaRoute}...`);
 
         try {
           if (state) {
-            this.logger.debug(
+            Aponia.logger.debug(
               `Registering state for ${method} ${elysiaRoute}, state: ${state}`,
             );
             for (const [key, value] of state) this.app.state(key, value);
           }
           if (decorators) {
-            this.logger.debug(
+            Aponia.logger.debug(
               `Registering decorators for ${method} ${elysiaRoute}, decorators: ${decorators}`,
             );
             for (const [key, value] of decorators)
@@ -200,7 +208,9 @@ export class Aponia {
             (this.app[key] as Fn)(elysiaRoute, fn);
           }
         } catch (err) {
-          console.error(`Error registering route: ${method} ${elysiaRoute}!`);
+          Aponia.logger.error(
+            `Error registering route: ${method} ${elysiaRoute}!`,
+          );
           throw err;
         }
       }
@@ -209,12 +219,12 @@ export class Aponia {
     const results = await Promise.allSettled(promises);
     const rejected = results.filter((result) => result.status === "rejected");
     if (rejected.length > 0) {
-      console.error("Errors encountered while registering routes:");
+      Aponia.logger.error("Errors encountered while registering routes:");
       for (const result of rejected)
-        console.error((result as PromiseRejectedResult).reason);
+        Aponia.logger.error((result as PromiseRejectedResult).reason);
       throw new Error("Errors encountered while registering routes!");
     }
-    this.logger.debug("Registered all routes:", this.app.routes);
+    Aponia.logger.debug("Registered all routes:", this.app.routes);
     this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
     return this.app;
   }
@@ -234,7 +244,6 @@ export class Aponia {
   }
 
   removeWildcard(route: string) {
-    console.log("route", route);
     const wildcardIndex = route.indexOf("[[...");
     if (wildcardIndex === -1) return route;
     return `${route.substring(0, wildcardIndex)}*`;
@@ -242,11 +251,13 @@ export class Aponia {
 
   static async build(
     options: AponiaBuildOptions = {
-      routesDir: `${process.cwd()}/src/routes`,
+      srcDir: `${process.cwd()}/src`,
       sourcemaps: false,
     },
   ) {
-    console.log("Building Aponia...");
+    Aponia.logger.info("Building Aponia...");
+    const inputDir = options.srcDir ?? `${process.cwd()}/src`;
+
     // remove
     const outdir = options.outDir ?? "./dist";
     await rm(outdir, { recursive: true, force: true });
@@ -260,13 +271,9 @@ export class Aponia {
       sourcemap,
     });
 
-    console.log(`Transpiling routes (sourcemaps=${sourcemap})...`);
-    await Aponia.copyAndTranspileDir(
-      options.routesDir,
-      `${outdir}/routes`,
-      sourcemap,
-    );
-    console.log("Aponia build complete!");
+    Aponia.logger.info(`Transpiling routes (sourcemaps=${sourcemap})...`);
+    await Aponia.copyAndTranspileDir(inputDir, outdir, sourcemap);
+    Aponia.logger.info("Aponia build complete!");
   }
 
   static async copyAndTranspileDir(
@@ -274,6 +281,8 @@ export class Aponia {
     dest: string,
     sourcemap: "none" | "external" | "inline",
   ) {
+    Aponia.logger.debug({ src, dest, sourcemap });
+
     // Ensure the destination directory exists
     await mkdir(dest, { recursive: true });
 
@@ -292,9 +301,12 @@ export class Aponia {
         // If the entry is a file, copy it
         if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
           // transpile the file
-          console.log(`Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`);
+          Aponia.logger.info(
+            `Transpiling file (sourcemaps=${sourcemap}): ${srcPath}`,
+          );
           await Bun.build({
             entrypoints: [srcPath],
+            external: ["*"],
             outdir: dest,
             target: "bun",
             sourcemap,

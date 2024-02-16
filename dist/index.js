@@ -2,7 +2,6 @@
 // src/index.ts
 import {watch} from "fs";
 import {join} from "path";
-var Bun = globalThis.Bun;
 import Elysia from "elysia";
 import {copyFile, mkdir, readdir, rm} from "fs/promises";
 import pino from "pino";

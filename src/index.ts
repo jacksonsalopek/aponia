@@ -1,6 +1,6 @@
 import { FSWatcher, watch } from "fs";
 import { join } from "path";
-import Bun from "bun";
+import { FileSystemRouter } from "bun";
 import Elysia, {
   type AfterRequestHandler,
   type Context,
@@ -23,8 +23,15 @@ export type AponiaAfterRequestHandler = AfterRequestHandler<
   ElysiaInstance
 >;
 export type AponiaHooks = LocalHook<TypedSchema<string>, ElysiaInstance>;
-export type AponiaCtx = Context;
-export type AponiaRouteHandlerFn<Res = unknown> = (ctx: AponiaCtx) => Res;
+export type AponiaCtx<T = unknown> = Context<
+  // biome-ignore lint/suspicious/noExplicitAny: must use any type for Elysia
+  // biome-ignore lint/complexity/noBannedTypes: must use {} type for Elysia
+  TypedSchemaToRoute<MergeSchema<TypedSchema<string>, TypedSchema<any>>, {}>
+> &
+  T;
+export type AponiaRouteHandlerFn<Res = unknown, Ctx = unknown> = (
+  ctx: AponiaCtx<Ctx>,
+) => Res;
 export type AponiaKey = string | number | symbol;
 export type AponiaState = [AponiaKey, string];
 // biome-ignore lint/suspicious/noExplicitAny: Elysia accepts any here
@@ -32,14 +39,14 @@ export type AponiaDecorator = [string, any];
 export type AponiaDerivedState = (
   ctx: AponiaCtx,
 ) => ReturnType<Parameters<typeof Elysia.prototype.derive>[0]>;
-export type AponiaRouteHandlerConfig = {
-  fn: AponiaRouteHandlerFn;
+export type AponiaRouteHandlerConfig<Res = unknown, Ctx = unknown> = {
+  fn: AponiaRouteHandlerFn<Res, Ctx>;
   state?: AponiaState[];
   hooks?: AponiaHooks;
   decorators?: AponiaDecorator[];
 };
-export type AponiaRouteHandler = {
-  [key in HTTPMethod]?: AponiaRouteHandlerConfig;
+export type AponiaRouteHandler<Res = unknown, Ctx = unknown> = {
+  [key in HTTPMethod]?: AponiaRouteHandlerConfig<Res, Ctx>;
 };
 export type ElysiaAsyncPlugin = Parameters<Elysia["use"]>[0];
 export type AponiaPlugin =
@@ -97,7 +104,7 @@ export const APONIA_LOG_COLORS = {
 
 export class Aponia {
   app: Elysia;
-  fsr: Bun.FileSystemRouter;
+  fsr: FileSystemRouter;
   options: AponiaOptions;
   routesDir: string;
   watcher?: FSWatcher;

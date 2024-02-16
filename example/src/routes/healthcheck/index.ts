@@ -1,6 +1,5 @@
 import type {
   AponiaAfterRequestHandler,
-  AponiaCtx,
   AponiaDecorator,
   AponiaHooks,
   AponiaRouteHandler,
@@ -10,16 +9,22 @@ import logger from "../../logger";
 
 export const getDateDecorator: AponiaDecorator = ["getDate", () => Date.now()];
 
-export const getHealthcheck: AponiaRouteHandlerFn<{
+interface DecoratedCtx {
+  getDate: () => Date;
+}
+
+interface HealthcheckResponse {
   status: string;
   timestamp: number;
-}> = (ctx: AponiaCtx) => {
-  const decoratedCtx = ctx as AponiaCtx & {
-    getDate: () => Date;
-  };
+}
+
+export const getHealthcheck: AponiaRouteHandlerFn<
+  HealthcheckResponse,
+  DecoratedCtx
+> = (ctx) => {
   return {
     status: "ok",
-    timestamp: +decoratedCtx.getDate(),
+    timestamp: +ctx.getDate(),
   };
 };
 
@@ -32,7 +37,7 @@ export const getHealthcheckHooks: AponiaHooks = {
   afterHandle: [postGetHealthcheck, () => logger.info("called 2")],
 };
 
-export const handler: AponiaRouteHandler = {
+export const handler: AponiaRouteHandler<HealthcheckResponse, DecoratedCtx> = {
   GET: {
     fn: getHealthcheck,
     hooks: getHealthcheckHooks,

@@ -1,26 +1,26 @@
 /// <reference types="bun-types" />
 import { FSWatcher } from "fs";
-import Bun from "bun";
+import { FileSystemRouter } from "bun";
 import Elysia, { type AfterRequestHandler, type Context, type ElysiaInstance, type HTTPMethod, type LocalHook, type TypedSchema, type TypedSchemaToRoute } from "elysia";
 import { MergeSchema } from "elysia/dist/types";
 import pino from "pino";
 export type Fn = (...args: any[]) => any;
 export type AponiaAfterRequestHandler = AfterRequestHandler<TypedSchemaToRoute<MergeSchema<TypedSchema<string>, TypedSchema<any>>, {}>, ElysiaInstance>;
 export type AponiaHooks = LocalHook<TypedSchema<string>, ElysiaInstance>;
-export type AponiaCtx = Context;
-export type AponiaRouteHandlerFn<Res = unknown> = (ctx: AponiaCtx) => Res;
+export type AponiaCtx<T = unknown> = Context<TypedSchemaToRoute<MergeSchema<TypedSchema<string>, TypedSchema<any>>, {}>> & T;
+export type AponiaRouteHandlerFn<Res = unknown, Ctx = unknown> = (ctx: AponiaCtx<Ctx>) => Res;
 export type AponiaKey = string | number | symbol;
 export type AponiaState = [AponiaKey, string];
 export type AponiaDecorator = [string, any];
 export type AponiaDerivedState = (ctx: AponiaCtx) => ReturnType<Parameters<typeof Elysia.prototype.derive>[0]>;
-export type AponiaRouteHandlerConfig = {
-    fn: AponiaRouteHandlerFn;
+export type AponiaRouteHandlerConfig<Res = unknown, Ctx = unknown> = {
+    fn: AponiaRouteHandlerFn<Res, Ctx>;
     state?: AponiaState[];
     hooks?: AponiaHooks;
     decorators?: AponiaDecorator[];
 };
-export type AponiaRouteHandler = {
-    [key in HTTPMethod]?: AponiaRouteHandlerConfig;
+export type AponiaRouteHandler<Res = unknown, Ctx = unknown> = {
+    [key in HTTPMethod]?: AponiaRouteHandlerConfig<Res, Ctx>;
 };
 export type ElysiaAsyncPlugin = Parameters<Elysia["use"]>[0];
 export type AponiaPlugin = ElysiaAsyncPlugin | Awaited<ElysiaAsyncPlugin>["default"];
@@ -71,7 +71,7 @@ export declare const APONIA_LOG_COLORS: {
 };
 export declare class Aponia {
     app: Elysia;
-    fsr: Bun.FileSystemRouter;
+    fsr: FileSystemRouter;
     options: AponiaOptions;
     routesDir: string;
     watcher?: FSWatcher;

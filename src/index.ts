@@ -167,14 +167,19 @@ export class Aponia {
         throw new Error(`Couldn't match route: ${route}!`);
       }
       Aponia.logger.debug(`Matched route: ${route}`);
+
       let module: { handler: AponiaRouteHandler } | undefined = undefined;
+      Aponia.logger.debug(
+        `Matched route filePath: ${matchedRouteHandler.filePath}`,
+      );
+
       await import(matchedRouteHandler.filePath).then((m) => {
         module = m;
       });
       if (!module) {
         throw new Error(`Module for route: ${route} not loaded!`);
       }
-      Aponia.logger.debug("Loaded module:", module);
+
       module = module as { handler: AponiaRouteHandler };
       if (!module.handler) {
         throw new Error(`Couldn't find route handler for route: ${route}!`);
@@ -185,6 +190,7 @@ export class Aponia {
         const { fn, hooks, state, decorators } =
           // biome-ignore lint/style/noNonNullAssertion: we've already checked for undefined
           module!.handler[method as HTTPMethod]!;
+        if (!fn) throw new Error(`No handler function for route: ${route}!`);
         const elysiaRoute = this.transformRoute(route);
         Aponia.logger.debug(`Registering route: ${method} ${elysiaRoute}...`);
 
@@ -224,7 +230,7 @@ export class Aponia {
         Aponia.logger.error((result as PromiseRejectedResult).reason);
       throw new Error("Errors encountered while registering routes!");
     }
-    Aponia.logger.debug("Registered all routes:", this.app.routes);
+    Aponia.logger.debug({ msg: "Registered routes", routes: this.app.routes });
     this.app.listen(this.options.port ?? Bun.env.APONIA_PORT ?? 3000);
     return this.app;
   }
@@ -236,7 +242,7 @@ export class Aponia {
   transformRoute(route: string) {
     const wildcardRemoved = this.removeWildcard(route);
     const transformedRoute = wildcardRemoved.replace(/\[([^\]]+)\]/g, ":$1");
-    if (this.options.basePath && route === "/") {
+    if (this.options.basePath) {
       if (route === "/") return this.options.basePath;
       return `${this.options.basePath}${transformedRoute}`;
     }
